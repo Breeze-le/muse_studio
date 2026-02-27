@@ -19,7 +19,10 @@ class Config:
 
     # Zhipu AI 配置
     ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
-    ZHIPU_MODEL_NAME = os.getenv("ZHIPU_MODEL_NAME", "glm-4.7")
+    ZHIPU_MODEL_NAME = os.getenv("ZHIPU_MODEL_NAME", "glm-4.7-flash")
+
+    # Debug 模式
+    DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() in ("true", "1", "on")
 
 # 导出配置实例或直接导出变量
 config = Config()

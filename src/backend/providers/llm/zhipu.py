@@ -5,7 +5,7 @@
 """
 
 from src.backend.config import config
-from src.backend.utils import logger
+from src.backend.logger import logger
 from .base import BaseLLMProvider
 
 

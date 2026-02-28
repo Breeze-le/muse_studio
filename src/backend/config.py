@@ -77,6 +77,21 @@ class Config:
     THIRTYTWO_DOUBAO_API_KEY = os.getenv("THIRTYTWO_DOUBAO_API_KEY")
     THIRTYTWO_DOUBAO_MODEL = os.getenv("THIRTYTWO_DOUBAO_MODEL", "doubao-seedream-5-0-260128")
 
+    # =============================================================================
+    # 302.AI Kling 视频生成配置
+    # =============================================================================
+    # Kling 视频生成 API 密钥（如不配置则使用 THIRTYTWO_API_KEY）
+    # Kling 视频生成模型名称
+    # 可用模型:
+    #   - kling-v-1-5-260121               # Kling v1.5（默认，最新版本）
+    #   - kling-v-1-260121                 # Kling v1
+    # 文档: https://doc.302.ai/421815034e0
+    THIRTYTWO_KLING_API_KEY = os.getenv("THIRTYTWO_KLING_API_KEY")
+    THIRTYTWO_KLING_MODEL = os.getenv("THIRTYTWO_KLING_MODEL", "kling-v-1-5-260121")
+
+    # 通用 302.AI 视频生成配置（兼容性配置）
+    THIRTYTWO_VIDEO_MODEL = os.getenv("THIRTYTWO_VIDEO_MODEL", "kling-v2-5-turbo")
+
     # Debug 模式
     # =============================================================================
     DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() in ("true", "1", "on")

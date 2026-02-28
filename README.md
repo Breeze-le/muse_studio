@@ -90,7 +90,7 @@ muse_studio/
 
 | 厂商 | 类名 | 状态 | 推荐模型 |
 |------|------|------|----------|
-| 302.AI | `ThirtyTwoImageProvider` | ✅ 已实现 | `flux-pro` / `flux-realism` |
+| 302.AI | `ThirtyTwoImageProvider` | ✅ 已实现 | `google/nano-banana-2 ` / `doubao-seedream-5-0-260128` |
 
 ---
 

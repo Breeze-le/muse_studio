@@ -45,3 +45,4 @@ class TestGeminiGenerate:
             assert isinstance(response, str)
             assert "Error" not in response
 
+

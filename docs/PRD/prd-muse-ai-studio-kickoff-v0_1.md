@@ -3,7 +3,7 @@
 - 文档版本：`v0.1-draft`
 - 日期：`2026-02-27`
 - 适用阶段：`Demo阶段（期望 1 周内完成）`
-- 编写方式：`brainstorming + doc-coauthoring`（压缩版流程，先给可执行草案）
+- 编写方式：`brainstorming + doc-coauthoring`
 
 ## 0. 一句话定义
 `MUSE AI Studio` 是面向服装与时尚行业的双端 Web 应用：

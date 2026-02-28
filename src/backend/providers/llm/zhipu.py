@@ -1,7 +1,24 @@
 """
 智谱 AI LLM 提供商
 
-支持 GLM-4.7、GLM-4.7-FlashX 等模型。
+支持 GLM-4.7、GLM-4 Plus、GLM-Z1 等系列模型。
+
+可用 LLM 模型列表:
+    - glm-4.7-flash          # 快速响应版（推荐）
+    - glm-4.7-flashx         # 更快速的增强版
+    - glm-4.7                # 标准版，支持 thinking
+    - glm-4.7-air            # 轻量版
+    - glm-4-plus             # 增强版，支持 thinking
+    - glm-4-0520             # 稳定版本
+    - glm-4-flash            # Flash 版本
+    - glm-4-airx             # 轻量增强版
+    - glm-z1-plus            # Z1 增强版
+    - glm-z1-air             # Z1 轻量版
+    - glm-z1-preview         # Z1 预览版
+
+注意:
+    - thinking_enabled 参数支持: glm-4.7, glm-4-plus 等专业版
+    - 免费套餐推荐: glm-4.7-flash
 """
 
 from src.backend.config import config
@@ -12,7 +29,7 @@ from .base import BaseLLMProvider
 class ZhipuProvider(BaseLLMProvider):
     """智谱 AI LLM 提供商
 
-    支持 GLM-4.7、GLM-4.7-FlashX 等模型。
+    支持 GLM-4.7、GLM-4 Plus、GLM-Z1 等系列模型。
 
     特性:
         - 支持深度思考模式 (thinking_enabled)
@@ -21,7 +38,7 @@ class ZhipuProvider(BaseLLMProvider):
 
     环境变量:
         ZHIPU_API_KEY: 智谱 API 密钥（必需）
-        ZHIPU_MODEL_NAME: 模型名称（默认: glm-4.7）
+        ZHIPU_MODEL_NAME: 模型名称（默认: glm-4.7-flash）
 
     示例:
         >>> provider = ZhipuProvider()

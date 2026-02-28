@@ -8,8 +8,9 @@
 
 - [1. 架构与命名](#1-架构与命名)
 - [2. 添加供应商](#2-添加供应商)
-- [3. 测试验证](#3-测试验证)
-- [4. 检查清单](#4-检查清单)
+- [3. 依赖管理](#3-依赖管理)
+- [4. 测试验证](#4-测试验证)
+- [5. 检查清单](#5-检查清单)
 
 ---
 
@@ -44,7 +45,8 @@ src/backend/providers/
 - 请求/响应格式（OpenAI 兼容 / 原生）
 - 可用模型列表及推荐模型
 - 特殊参数（temperature / max_tokens / thinking_level 等）
-- SDK 包名（如使用官方 SDK）
+- **SDK 包名及版本**（如使用官方 SDK）
+- **测试所需额外依赖**（如 pytest 插件、mock 工具等）
 
 ---
 
@@ -58,8 +60,12 @@ src/backend/providers/      __init__.py
   llm/<vendor>.py           or image/<vendor>.py
 
          ↓                        ↓
-3. 添加配置项               4. 创建测试
-config.py + .env.example    tests/<type>/test_<vendor>.py
+3. 添加配置项               4. 管理依赖
+config.py + .env.example    requirements.txt
+                              + scripts/
+         ↓                        ↓
+5. 创建测试               6. 运行验证
+tests/<type>/test_<vendor>.py  ./scripts/test.sh
 ```
 
 ### 2.1 LLM Provider 模板
@@ -134,7 +140,53 @@ class <Vendor>Provider(BaseLLMProvider):
 
 ---
 
-## 3. 测试验证
+## 3. 依赖管理
+
+> **重要**: 每添加新供应商时，必须同步更新依赖配置文件。
+
+### 3.1 添加生产依赖
+
+**文件**: `requirements.txt`
+
+```
+# 在文件末尾添加新依赖，格式：
+<package-name>==<version>  # <供应商> SDK
+```
+
+**示例**:
+```
+google-genai==1.0.0        # Google Gemini SDK
+zhipuai==2.1.0             # 智谱 AI SDK
+```
+
+### 3.2 添加测试依赖
+
+**文件**: `scripts/test.sh` 中的 `pip install` 行（如需测试专用依赖）
+
+```bash
+# 在检查 pytest 安装部分添加测试专用依赖
+if ! command -v pytest &> /dev/null; then
+    echo -e "${RED}pytest 未安装，正在安装...${NC}"
+    pip install pytest pytest-cov <test-package> -q
+fi
+```
+
+### 3.3 安装新依赖
+
+```bash
+# 激活虚拟环境后运行
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+或使用 setup 脚本：
+```bash
+./scripts/setup.sh
+```
+
+---
+
+## 4. 测试验证
 
 ### 测试模板
 
@@ -171,12 +223,23 @@ PYTHONPATH=/Users/saymefat/Desktop/muse_studio pytest tests/llm/test_<vendor>.py
 
 ---
 
-## 4. 检查清单
+## 5. 检查清单
 
 ### 通用步骤
 - [ ] 创建 Provider 文件 `src/backend/providers/<type>/<vendor>.py`
 - [ ] 更新模块导出 `__init__.py`
 - [ ] 添加配置项到 `config.py` 和 `.env.example`
+- [ ] **添加依赖包到 `requirements.txt`**
+- [ ] **如需测试专用依赖，更新 `scripts/test.sh`**
+- [ ] 运行 `pip install -r requirements.txt` 安装新依赖
 - [ ] 创建测试文件 `tests/<type>/test_<vendor>.py`
-- [ ] 运行测试验证功能
-- [ ] 更新本文档"已实现供应商"章节
+- [ ] 运行 `./scripts/test.sh` 验证功能
+- [ ] 更新本文档"已实现供应商"章节（如有）
+
+### 依赖管理检查项
+- [ ] 记录供应商 SDK 包名和版本
+- [ ] 记录测试所需额外依赖
+- [ ] 更新 `requirements.txt`
+- [ ] 更新 `scripts/test.sh`（如需）
+- [ ] 验证依赖安装成功
+- [ ] 测试无 import 错误

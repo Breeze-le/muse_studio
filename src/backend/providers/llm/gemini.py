@@ -63,7 +63,7 @@ class GeminiProvider(BaseLLMProvider):
     def generate(
         self,
         prompt: str,
-        thinking_level: str | None = "high",
+        thinking_level: str | None = None,
         temperature: float = 1.0,
         max_tokens: int = 65536,
     ) -> str:

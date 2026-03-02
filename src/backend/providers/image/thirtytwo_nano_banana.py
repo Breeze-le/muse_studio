@@ -24,6 +24,7 @@ API 文档:
     ...     image = provider.generate("变成卡通风格", images=["https://example.com/cat.jpg"])
 """
 
+import time
 import requests
 from src.backend.config import config
 from src.backend.logger import logger
@@ -53,18 +54,20 @@ class ThirtyTwoNanoBananaProvider(BaseImageProvider):
             - google/nano-banana-2           # Nano-Banana-2（默认，性价比高）
             - google/nano-banana-pro         # Nano-Banana-Pro（更高质量）
             - google/nano-banana             # Nano-Banana（轻量版）
-        Google Imagen 系列:
-            - google/imagen-4-preview-ultra  # Imagen 4 Ultra（最高质量）
-            - google/imagen-4-preview-fast   # Imagen 4 Fast（快速生成）
-            - google/imagen-3-fast           # Imagen 3 Fast
     """
 
     API_BASE_TEXT_TO_IMAGE = "https://api.302.ai/ws/api/v3/google/nano-banana-2/text-to-image"
     API_BASE_IMAGE_TO_IMAGE = "https://api.302.ai/ws/api/v3/google/nano-banana-2/edit"
 
+    # 超时配置（秒）
+    TIMEOUT_TEXT_TO_IMAGE = 120
+    TIMEOUT_IMAGE_TO_IMAGE = 300  # 图生图可能需要更长时间
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2
+
     def __init__(self):
         super().__init__(
-            api_key=config.THIRTYTWO_GEMINI_IMAGE_API_KEY or config.THIRTYTWO_API_KEY or "",
+            api_key=config.THIRTYTWO_API_KEY or "",
             model_name=config.THIRTYTWO_IMAGE_MODEL
         )
         self.api_base_text_to_image = self.API_BASE_TEXT_TO_IMAGE
@@ -146,41 +149,62 @@ class ThirtyTwoNanoBananaProvider(BaseImageProvider):
         # 添加额外的参数
         payload.update(kwargs)
 
-        try:
-            logger.info(f"Generating image with prompt: {prompt[:50]}... (mode: {'image-to-image' if images else 'text-to-image'})")
+        # 根据模式选择超时时间
+        timeout = self.TIMEOUT_IMAGE_TO_IMAGE if images else self.TIMEOUT_TEXT_TO_IMAGE
 
-            response = requests.post(
-                api_url,
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-            response.raise_for_status()
+        # 重试逻辑
+        last_error = None
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                logger.info(
+                    f"Generating image with prompt: {prompt[:50]}... "
+                    f"(mode: {'image-to-image' if images else 'text-to-image'}, "
+                    f"attempt: {attempt + 1}/{self.MAX_RETRIES})"
+                )
 
-            data = response.json()
+                response = requests.post(
+                    api_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout
+                )
+                response.raise_for_status()
 
-            if data.get("code") == 200:
-                outputs = data.get("data", {}).get("outputs", [])
-                if outputs and isinstance(outputs, list):
-                    image_url = outputs[0]
-                    logger.info(f"Image generated successfully: {image_url}")
+                data = response.json()
 
-                    # 下载图片并返回二进制数据
-                    img_response = requests.get(image_url, timeout=60)
-                    img_response.raise_for_status()
-                    return img_response.content
+                if data.get("code") == 200:
+                    outputs = data.get("data", {}).get("outputs", [])
+                    if outputs and isinstance(outputs, list):
+                        image_url = outputs[0]
+                        logger.info(f"Image generated successfully: {image_url}")
+
+                        # 下载图片并返回二进制数据
+                        img_response = requests.get(image_url, timeout=60)
+                        img_response.raise_for_status()
+                        return img_response.content
+                    else:
+                        raise RuntimeError("No image URL in response")
                 else:
-                    raise RuntimeError("No image URL in response")
-            else:
-                error_msg = data.get("message", "Unknown error")
-                raise RuntimeError(f"API error: {error_msg}")
+                    error_msg = data.get("message", "Unknown error")
+                    raise RuntimeError(f"API error: {error_msg}")
 
-        except requests.RequestException as e:
-            logger.error(f"HTTP error during image generation: {e}")
-            raise RuntimeError(f"HTTP error: {e}") from e
-        except Exception as e:
-            logger.error(f"Error during image generation: {e}")
-            raise RuntimeError(f"Error generating image: {e}") from e
+            except (requests.Timeout, requests.ConnectionError) as e:
+                last_error = e
+                if attempt < self.MAX_RETRIES - 1:
+                    retry_delay = self.RETRY_DELAY * (attempt + 1)
+                    logger.warning(
+                        f"Request failed (attempt {attempt + 1}/{self.MAX_RETRIES}): {e}. "
+                        f"Retrying in {retry_delay}s..."
+                    )
+                    time.sleep(retry_delay)
+                else:
+                    logger.error(f"Max retries reached. Last error: {e}")
+            except requests.RequestException as e:
+                last_error = e
+                logger.error(f"HTTP error during image generation: {e}")
+                break
+
+        raise RuntimeError(f"HTTP error after {self.MAX_RETRIES} retries: {last_error}") from last_error
 
 
 # 单例实例

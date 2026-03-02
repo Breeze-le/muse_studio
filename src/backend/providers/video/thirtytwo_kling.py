@@ -87,14 +87,14 @@ class ThirtyTwoKlingProvider(BaseVideoProvider):
 
     def __init__(self):
         super().__init__(
-            api_key=config.THIRTYTWO_KLING_API_KEY or config.THIRTYTWO_API_KEY or "",
-            model_name=config.THIRTYTWO_VIDEO_MODEL or "kling-v2-5-turbo"
+            api_key=config.THIRTYTWO_API_KEY or "",
+            model_name=config.THIRTYTWO_VIDEO_MODEL
         )
         self.default_duration = 5
         self.default_aspect_ratio = "16:9"
         self.default_mode = "std"
         self.polling_interval = 5  # 轮询间隔（秒）
-        self.max_polling_time = 300  # 最大轮询时间（秒）
+        self.max_polling_time = 1000  # 最大轮询时间（秒）
 
         if self.api_key:
             self.client = True
@@ -109,7 +109,7 @@ class ThirtyTwoKlingProvider(BaseVideoProvider):
         images: list[str] | str | None = None,
         model_name: str | None = None,
         mode: str = "std",
-        aspect_ratio: str = "16:9",
+        aspect_ratio: str = "9:16",
         duration: int = 5,
         wait_for_result: bool = True,
         **kwargs

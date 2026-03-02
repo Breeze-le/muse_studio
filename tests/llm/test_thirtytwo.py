@@ -12,15 +12,17 @@ from src.backend.logger import logger
 
 
 @pytest.mark.skipif(
-    not os.getenv("THIRTYTWO_API_KEY") or os.getenv("THIRTYTWO_API_KEY") == "your_thirtytwo_api_key_here",
-    reason="需要配置有效的 THIRTYTWO_API_KEY"
+    not os.getenv("THIRTYTWO_API_KEY"),
+    reason="需要配置 THIRTYTWO_API_KEY"
 )
 class TestThirtyTwoGenerate:
     """测试 generate 函数"""
 
     def test_generate_simple_response(self):
         """测试简单文本生成"""
+        model_name = "gemini-2.5-flash"
         provider = ThirtyTwoProvider()
+        provider.model_name = model_name
         prompt = "用一句话解释什么是量子计算"
 
         logger.info(f"[LLM INPUT] Model: {provider.model_name}, Prompt: {prompt}")
@@ -32,10 +34,11 @@ class TestThirtyTwoGenerate:
         assert len(response) > 10
         assert "Error" not in response
 
-
     def test_generate_stream(self):
         """测试流式输出"""
+        model_name ="gemini-2.5-flash"
         provider = ThirtyTwoProvider()
+        provider.model_name = model_name
         prompt = "用三句话介绍人工智能"
 
         logger.info(f"[LLM INPUT] Model: {provider.model_name}, Prompt: {prompt}, Stream: True")
@@ -46,4 +49,3 @@ class TestThirtyTwoGenerate:
         assert isinstance(response, str)
         assert len(response) > 10
         assert "Error" not in response
-

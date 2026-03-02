@@ -45,7 +45,7 @@ class ThirtyTwoProvider(BaseLLMProvider):
     """
 
     def __init__(self):
-        super().__init__(config.THIRTYTWO_API_KEY, config.THIRTYTWO_MODEL_NAME)
+        super().__init__(config.THIRTYTWO_API_KEY, config.THIRTYTWO_LLM_MODEL)
 
         if self.api_key:
             try:

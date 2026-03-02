@@ -41,9 +41,12 @@ muse_studio/
 │   │       │   ├── zhipu.py      # 智谱 AI 实现
 │   │       │   ├── gemini.py     # Google Gemini 实现
 │   │       │   └── thirtytwo.py  # 302.AI 模型聚合平台实现
-│   │       └── image/            # 图像生成提供商
-│   │           ├── base.py       # BaseImageProvider 抽象基类
-│   │           └── thirtytwo.py  # 302.AI 图像生成实现
+│   │       ├── image/            # 图像生成提供商
+│   │       │   ├── base.py       # BaseImageProvider 抽象基类
+│   │       │   └── thirtytwo.py  # 302.AI 图像生成实现
+│   │       └── video/            # 视频生成提供商
+│   │           ├── base.py       # BaseVideoProvider 抽象基类
+│   │           └── thirtytwo_kling.py  # 302.AI Kling 视频生成实现
 │   └── frontend/                 # 前端（React + TS / 或直接用 HTML）
 │       ├── index.html
 │       ├── vite.config.ts
@@ -69,8 +72,10 @@ muse_studio/
     │   ├── test_zhipu.py         # 智谱 AI 测试
     │   ├── test_gemini.py        # Gemini 测试
     │   └── test_thirtytwo.py     # 302.AI 测试
-    └── image/                    # 图像提供商测试
-        └── test_thirtytwo.py     # 302.AI 图像测试
+    ├── image/                    # 图像提供商测试
+    │   └── test_thirtytwo.py     # 302.AI 图像测试
+    └── video/                    # 视频提供商测试
+        └── test_thirtytwo_kling.py  # 302.AI Kling 视频测试
 ```
 
 
@@ -90,7 +95,13 @@ muse_studio/
 
 | 厂商 | 类名 | 状态 | 推荐模型 |
 |------|------|------|----------|
-| 302.AI | `ThirtyTwoImageProvider` | ✅ 已实现 | `google/nano-banana-2 ` / `doubao-seedream-5-0-260128` |
+| 302.AI | `ThirtyTwoImageProvider` | ✅ 已实现 | `google/nano-banana-2` / `doubao-seedream-5-0-260128` |
+
+#### 视频生成提供商
+
+| 厂商 | 类名 | 状态 | 推荐模型 |
+|------|------|------|----------|
+| 302.AI Kling | `ThirtyTwoKlingProvider` | ✅ 已实现 | `kling-v-1-5-260121` / `kling-v2-5-turbo` |
 
 ---
 
@@ -118,6 +129,7 @@ cp .env.example .env
 # 运行指定类型测试
 ./scripts/test.sh tests/llm/        # 仅 LLM 测试
 ./scripts/test.sh tests/image/      # 仅图像测试
+./scripts/test.sh tests/video/      # 仅视频测试
 ./scripts/test.sh tests/llm/test_zhipu.py  # 指定文件
 ```
 

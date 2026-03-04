@@ -41,3 +41,15 @@ def test_logger(request):
     logger.debug(f"Starting test: {test_name}")
     yield
     logger.debug(f"Finished test: {test_name}")
+
+
+@pytest.fixture(autouse=True)
+def ensure_output_dir():
+    """确保测试输出目录存在"""
+    output_dirs = [
+        "tests/providers/image/output",
+        "tests/providers/video/output",
+    ]
+    for dir_path in output_dirs:
+        os.makedirs(dir_path, exist_ok=True)
+    yield

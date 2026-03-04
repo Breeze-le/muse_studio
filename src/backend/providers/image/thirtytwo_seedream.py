@@ -29,6 +29,7 @@ import time
 import requests
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseImageProvider
 
 
@@ -64,6 +65,64 @@ class ThirtyTwoSeedreamProvider(BaseImageProvider):
 
     API_URL = "https://api.302.ai/doubao/images/generations"
     DEFAULT_MODEL = "doubao-seedream-5-0-260128"
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="image",
+            type=str | list[str],
+            exposed=True,
+            default=None,
+            description="参考图片 URL（单张）或 URL 列表（多张），用于图生图功能",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="size",
+            type=str,
+            exposed=True,
+            default=None,
+            description="图片尺寸（如 '2K'），如果同时指定了 aspect_ratio 则使用 aspect_ratio 对应的分辨率",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="aspect_ratio",
+            type=str,
+            exposed=True,
+            default="1:1",
+            description="宽高比",
+            choices=["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"],
+            required=False,
+        ),
+        ParamSpec(
+            name="watermark",
+            type=bool,
+            exposed=True,
+            default=False,
+            description="是否添加水印",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="response_format",
+            type=str,
+            exposed=False,
+            default="url",
+            description="返回格式，内部使用",
+            choices=["url", "b64_json"],
+            required=False,
+        ),
+        ParamSpec(
+            name="model",
+            type=str,
+            exposed=False,
+            default=None,
+            description="模型名称，内部使用",
+            choices=None,
+            required=False,
+        ),
+    )
 
     # 超时配置（秒）
     TIMEOUT_TEXT_TO_IMAGE = 120

@@ -41,6 +41,7 @@ from typing import Any
 import requests
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseVideoProvider
 
 
@@ -84,6 +85,64 @@ class ThirtyTwoKlingProvider(BaseVideoProvider):
     API_BASE_IMAGE2VIDEO = "https://api.302.ai/klingai/v1/videos/image2video"
     FETCH_API_BASE_TEXT2VIDEO = "https://api.302.ai/klingai/v1/videos/text2video"
     FETCH_API_BASE_IMAGE2VIDEO = "https://api.302.ai/klingai/v1/videos/image2video"
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="images",
+            type=str | list[str],
+            exposed=True,
+            default=None,
+            description="参考图片 URL，支持单个 URL 字符串或 URL 列表。不提供时使用文生视频模式",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="model_name",
+            type=str,
+            exposed=True,
+            default=None,
+            description="模型名称，内部使用",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="mode",
+            type=str,
+            exposed=True,
+            default="std",
+            description="生成模式，仅图生视频有效",
+            choices=["std", "pro"],
+            required=False,
+        ),
+        ParamSpec(
+            name="aspect_ratio",
+            type=str,
+            exposed=True,
+            default="9:16",
+            description="宽高比",
+            choices=["16:9", "9:16", "1:1"],
+            required=False,
+        ),
+        ParamSpec(
+            name="duration",
+            type=int,
+            exposed=True,
+            default=5,
+            description="视频时长（秒）",
+            choices=[5, 10],
+            required=False,
+        ),
+        ParamSpec(
+            name="wait_for_result",
+            type=bool,
+            exposed=False,
+            default=True,
+            description="是否等待任务完成并返回视频数据，内部使用",
+            choices=None,
+            required=False,
+        ),
+    )
 
     def __init__(self):
         super().__init__(

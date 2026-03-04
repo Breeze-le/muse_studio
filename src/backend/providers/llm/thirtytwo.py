@@ -20,6 +20,7 @@
 
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseLLMProvider
 
 
@@ -43,6 +44,37 @@ class ThirtyTwoProvider(BaseLLMProvider):
         >>> if provider.is_available():
         ...     response = provider.generate("用一句话解释量子计算")
     """
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="temperature",
+            type=float,
+            exposed=True,
+            default=1.0,
+            description="控制输出的随机性，范围 0.0-2.0",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="max_tokens",
+            type=int,
+            exposed=True,
+            default=65536,
+            description="最大输出 tokens 数",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="stream",
+            type=bool,
+            exposed=False,
+            default=False,
+            description="是否使用流式输出（内部参数）",
+            choices=None,
+            required=False,
+        ),
+    )
 
     def __init__(self):
         super().__init__(config.THIRTYTWO_API_KEY, config.THIRTYTWO_LLM_MODEL)

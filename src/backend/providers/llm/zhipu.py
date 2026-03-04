@@ -23,10 +23,60 @@
 
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseLLMProvider
 
 
 class ZhipuProvider(BaseLLMProvider):
+    """智谱 AI LLM 提供商
+
+    支持 GLM-4.7、GLM-4 Plus、GLM-Z1 等系列模型。
+
+    特性:
+        - 支持深度思考模式 (thinking_enabled)
+        - 使用 zhipuai SDK
+        - 自动错误处理和日志记录
+
+    环境变量:
+        ZHIPU_API_KEY: 智谱 API 密钥（必需）
+        ZHIPU_MODEL_NAME: 模型名称（默认: glm-4.7-flash）
+
+    示例:
+        >>> provider = ZhipuProvider()
+        >>> if provider.is_available():
+        ...     response = provider.generate("用一句话解释量子计算")
+    """
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="thinking_enabled",
+            type=bool,
+            exposed=True,
+            default=False,
+            description="是否启用深度思考模式（仅 glm-4.7, glm-4-plus 等专业版支持）",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="temperature",
+            type=float,
+            exposed=True,
+            default=1.0,
+            description="控制输出的随机性，范围 0.0-1.0",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="max_tokens",
+            type=int,
+            exposed=True,
+            default=65536,
+            description="最大输出 tokens 数",
+            choices=None,
+            required=False,
+        ),
+    )
     """智谱 AI LLM 提供商
 
     支持 GLM-4.7、GLM-4 Plus、GLM-Z1 等系列模型。

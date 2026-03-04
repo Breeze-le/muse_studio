@@ -61,4 +61,4 @@ logs/*.log
 Thumbs.db
 
 # 测试输出
-tests/*/output/
+tests/providers/*/output/

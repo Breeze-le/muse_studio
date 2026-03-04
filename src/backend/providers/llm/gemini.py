@@ -21,6 +21,7 @@
 
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseLLMProvider
 
 
@@ -44,6 +45,37 @@ class GeminiProvider(BaseLLMProvider):
         >>> if provider.is_available():
         ...     response = provider.generate("用一句话解释量子计算")
     """
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="thinking_level",
+            type=str,
+            exposed=True,
+            default=None,
+            description="思考级别，仅 gemini-3 系列模型支持",
+            choices=["minimal", "low", "medium", "high"],
+            required=False,
+        ),
+        ParamSpec(
+            name="temperature",
+            type=float,
+            exposed=True,
+            default=1.0,
+            description="控制输出的随机性，范围 0.0-2.0",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="max_tokens",
+            type=int,
+            exposed=True,
+            default=65536,
+            description="最大输出 tokens 数",
+            choices=None,
+            required=False,
+        ),
+    )
 
     def __init__(self):
         super().__init__(config.GEMINI_API_KEY, config.GEMINI_MODEL_NAME)

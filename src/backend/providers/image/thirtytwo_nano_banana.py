@@ -28,6 +28,7 @@ import time
 import requests
 from src.backend.config import config
 from src.backend.logger import logger
+from ..param_spec import ParamSpec
 from .base import BaseImageProvider
 
 
@@ -58,6 +59,55 @@ class ThirtyTwoNanoBananaProvider(BaseImageProvider):
 
     API_BASE_TEXT_TO_IMAGE = "https://api.302.ai/ws/api/v3/google/nano-banana-2/text-to-image"
     API_BASE_IMAGE_TO_IMAGE = "https://api.302.ai/ws/api/v3/google/nano-banana-2/edit"
+
+    # generate 方法参数规范
+    GENERATE_PARAMS = (
+        ParamSpec(
+            name="images",
+            type=list[str],
+            exposed=True,
+            default=None,
+            description="参考图片 URL 列表，用于图生图功能",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="resolution",
+            type=str,
+            exposed=True,
+            default="2k",
+            description="图片分辨率",
+            choices=["1k", "2k", "4k"],
+            required=False,
+        ),
+        ParamSpec(
+            name="aspect_ratio",
+            type=str,
+            exposed=True,
+            default="3:4",
+            description="宽高比",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="enable_base64_output",
+            type=bool,
+            exposed=True,
+            default=False,
+            description="是否返回 base64 编码的图片数据",
+            choices=None,
+            required=False,
+        ),
+        ParamSpec(
+            name="enable_sync_mode",
+            type=bool,
+            exposed=False,
+            default=True,
+            description="是否启用同步模式（内部参数）",
+            choices=None,
+            required=False,
+        ),
+    )
 
     # 超时配置（秒）
     TIMEOUT_TEXT_TO_IMAGE = 120

@@ -1,0 +1,197 @@
+"""Provider 参数元数据测试
+
+测试 Provider 的参数规范定义和获取对外暴露参数功能。
+"""
+
+import pytest
+
+from src.backend.providers.llm.zhipu import ZhipuProvider
+from src.backend.providers.llm.gemini import GeminiProvider
+from src.backend.providers.llm.thirtytwo import ThirtyTwoProvider
+from src.backend.providers.image.thirtytwo_seedream import ThirtyTwoSeedreamProvider
+from src.backend.providers.image.thirtytwo_nano_banana import ThirtyTwoNanoBananaProvider
+from src.backend.providers.video.thirtytwo_kling import ThirtyTwoKlingProvider
+
+
+class TestLLMParamSpec:
+    """测试 LLM Provider 参数规范"""
+
+    def test_zhipu_provider_params(self):
+        """测试 ZhipuProvider 参数规范"""
+        assert ZhipuProvider.GENERATE_PARAMS, "ZhipuProvider 应该有参数定义"
+
+        exposed = ZhipuProvider.get_exposed_params()
+        assert len(exposed) == 3, f"应该有 3 个对外暴露参数，实际: {len(exposed)}"
+
+        param_names = [p.name for p in exposed]
+        assert "thinking_enabled" in param_names
+        assert "temperature" in param_names
+        assert "max_tokens" in param_names
+
+        # 验证 thinking_enabled 参数
+        thinking_param = ZhipuProvider.get_param_dict()["thinking_enabled"]
+        assert thinking_param.type == bool
+        assert thinking_param.default is False
+        assert thinking_param.exposed is True
+        assert "深度思考" in thinking_param.description
+
+    def test_gemini_provider_params(self):
+        """测试 GeminiProvider 参数规范"""
+        assert GeminiProvider.GENERATE_PARAMS, "GeminiProvider 应该有参数定义"
+
+        exposed = GeminiProvider.get_exposed_params()
+        param_names = [p.name for p in exposed]
+
+        assert "thinking_level" in param_names
+        assert "temperature" in param_names
+        assert "max_tokens" in param_names
+
+        # 验证 thinking_level 参数的可选值
+        thinking_param = GeminiProvider.get_param_dict()["thinking_level"]
+        assert thinking_param.choices == ["minimal", "low", "medium", "high"]
+
+    def test_thirtytwo_provider_params(self):
+        """测试 ThirtyTwoProvider 参数规范"""
+        assert ThirtyTwoProvider.GENERATE_PARAMS, "ThirtyTwoProvider 应该有参数定义"
+
+        exposed = ThirtyTwoProvider.get_exposed_params()
+        param_names = [p.name for p in exposed]
+
+        # stream 不应该对外暴露
+        assert "stream" not in param_names
+
+        # temperature 和 max_tokens 应该暴露
+        assert "temperature" in param_names
+        assert "max_tokens" in param_names
+
+    def test_provider_info_structure(self):
+        """测试 get_provider_info 返回结构"""
+        info = ZhipuProvider.get_provider_info()
+
+        assert "provider_type" in info
+        assert info["provider_type"] == "llm"
+        assert "params" in info
+        assert "exposed_params" in info
+
+        # 验证 exposed_params 不包含 exposed=False 的参数
+        exposed_param_names = [p["name"] for p in info["exposed_params"]]
+        for param in info["params"]:
+            if param["exposed"]:
+                assert param["name"] in exposed_param_names
+            else:
+                assert param["name"] not in exposed_param_names
+
+
+class TestImageParamSpec:
+    """测试 Image Provider 参数规范"""
+
+    def test_thirtytwo_seedream_params(self):
+        """测试 ThirtyTwoSeedreamProvider 参数规范"""
+        assert ThirtyTwoSeedreamProvider.GENERATE_PARAMS, "应该有参数定义"
+
+        exposed = ThirtyTwoSeedreamProvider.get_exposed_params()
+        param_names = [p.name for p in exposed]
+
+        # 内部参数不应对外暴露
+        assert "response_format" not in param_names
+        assert "model" not in param_names
+
+        # 用户参数应该暴露
+        assert "image" in param_names
+        assert "aspect_ratio" in param_names
+        assert "watermark" in param_names
+
+        # 验证 aspect_ratio 的可选值
+        aspect_ratio_param = ThirtyTwoSeedreamProvider.get_param_dict()["aspect_ratio"]
+        assert "1:1" in aspect_ratio_param.choices
+        assert "16:9" in aspect_ratio_param.choices
+
+    def test_thirtytwo_nano_banana_params(self):
+        """测试 ThirtyTwoNanoBananaProvider 参数规范"""
+        assert ThirtyTwoNanoBananaProvider.GENERATE_PARAMS, "应该有参数定义"
+
+        exposed = ThirtyTwoNanoBananaProvider.get_exposed_params()
+        param_names = [p.name for p in exposed]
+
+        # 内部参数不应对外暴露
+        assert "enable_sync_mode" not in param_names
+
+        # 用户参数应该暴露
+        assert "images" in param_names
+        assert "resolution" in param_names
+        assert "aspect_ratio" in param_names
+        assert "enable_base64_output" in param_names  # 现已对外暴露
+
+
+class TestVideoParamSpec:
+    """测试 Video Provider 参数规范"""
+
+    def test_thirtytwo_kling_params(self):
+        """测试 ThirtyTwoKlingProvider 参数规范"""
+        assert ThirtyTwoKlingProvider.GENERATE_PARAMS, "应该有参数定义"
+
+        exposed = ThirtyTwoKlingProvider.get_exposed_params()
+        param_names = [p.name for p in exposed]
+
+        # 内部参数不应对外暴露
+        assert "wait_for_result" not in param_names
+
+        # 用户参数应该暴露
+        assert "images" in param_names
+        assert "model_name" in param_names  # 现已对外暴露
+        assert "mode" in param_names
+        assert "aspect_ratio" in param_names
+        assert "duration" in param_names
+
+        # 验证 duration 的可选值
+        duration_param = ThirtyTwoKlingProvider.get_param_dict()["duration"]
+        assert duration_param.choices == [5, 10]
+
+        # 验证 mode 的可选值
+        mode_param = ThirtyTwoKlingProvider.get_param_dict()["mode"]
+        assert mode_param.choices == ["std", "pro"]
+
+
+class TestParamSpecDataclass:
+    """测试 ParamSpec 数据类"""
+
+    def test_param_spec_attributes(self):
+        """测试 ParamSpec 属性"""
+        from src.backend.providers.param_spec import ParamSpec
+
+        param = ParamSpec(
+            name="test_param",
+            type=str,
+            exposed=True,
+            default="default_value",
+            description="测试参数",
+            choices=["a", "b"],
+            required=False,
+        )
+
+        assert param.name == "test_param"
+        assert param.type == str
+        assert param.exposed is True
+        assert param.default == "default_value"
+        assert param.description == "测试参数"
+        assert param.choices == ["a", "b"]
+        assert param.required is False
+
+    def test_param_spec_immutability(self):
+        """测试 ParamSpec 不可变性"""
+        from dataclasses import FrozenInstanceError
+        from src.backend.providers.param_spec import ParamSpec
+
+        param = ParamSpec(
+            name="test_param",
+            type=str,
+            exposed=True,
+            default="default_value",
+            description="测试参数",
+            choices=["a", "b"],
+            required=False,
+        )
+
+        # frozen dataclass 应该是不可变的
+        with pytest.raises(FrozenInstanceError):
+            param.name = "new_name"

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useFabricCanvas } from '../../hooks/useFabricCanvas';
 import { useCanvasStore } from '../../store';
-import { COLORS, LIMITS } from '../../types';
+import { DESIGN_TOKENS, LIMITS } from '../../types';
 import './InfiniteCanvas.css';
 
 /**
@@ -20,13 +20,14 @@ export function InfiniteCanvas() {
     useFabricCanvas(canvasRef, {
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: COLORS.background,
+      backgroundColor: DESIGN_TOKENS.canvas.bg,
       onViewportChange: () => {},
     });
 
   // 本地状态
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
 
   /**
    * 初始化：设置画布大小和事件监听
@@ -51,10 +52,10 @@ export function InfiniteCanvas() {
    */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 空格键：切换平移模式
+      // 空格键：临时平移模式（按住时生效，松开恢复）
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault();
-        setPanning(true);
+        setIsSpacePressed(true);
       }
 
       // Delete/Backspace：删除选中元素
@@ -66,7 +67,7 @@ export function InfiniteCanvas() {
         }
       }
 
-      // ESC：退出平移模式
+      // ESC：退出平移模式（工具栏切换的）并取消选择
       if (e.code === 'Escape') {
         setPanning(false);
         if (canvas) {
@@ -78,7 +79,7 @@ export function InfiniteCanvas() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
-        setPanning(false);
+        setIsSpacePressed(false);
       }
     };
 
@@ -92,17 +93,42 @@ export function InfiniteCanvas() {
   }, [canvas, setPanning, deleteSelected]);
 
   /**
+   * 根据平移状态更新 Fabric.js 画布的可选择性
+   */
+  useEffect(() => {
+    if (!canvas) return;
+
+    // 按住空格 或 工具栏平移模式开启时，禁用选择
+    const shouldDisableSelection = isSpacePressed || isPanning;
+
+    canvas.selection = !shouldDisableSelection;
+
+    // 禁用所有对象的选择和拖动
+    canvas.getObjects().forEach((obj) => {
+      obj.selectable = !shouldDisableSelection;
+      obj.evented = !shouldDisableSelection;
+    });
+
+    canvas.requestRenderAll();
+  }, [canvas, isSpacePressed, isPanning]);
+
+  /**
+   * 实际的平移状态（空格按住 或 工具栏模式开启）
+   */
+  const isActuallyPanning = isSpacePressed || isPanning;
+
+  /**
    * 鼠标按下
    */
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       // 平移模式或中键：开始拖拽
-      if (isPanning || e.button === 1) {
+      if (isActuallyPanning || e.button === 1) {
         setIsDragging(true);
         setLastMousePos({ x: e.clientX, y: e.clientY });
       }
     },
-    [isPanning]
+    [isActuallyPanning]
   );
 
   /**
@@ -118,13 +144,13 @@ export function InfiniteCanvas() {
       }
 
       // 更新鼠标样式
-      if (isPanning) {
+      if (isActuallyPanning) {
         (e.currentTarget as HTMLDivElement).style.cursor = isDragging ? 'grabbing' : 'grab';
       } else {
         (e.currentTarget as HTMLDivElement).style.cursor = 'default';
       }
     },
-    [isDragging, isPanning, lastMousePos, pan]
+    [isDragging, isActuallyPanning, lastMousePos, pan]
   );
 
   /**
@@ -248,52 +274,83 @@ export function InfiniteCanvas() {
 
       {/* 工具栏 */}
       <div className="canvas-toolbar">
+        {/* 工具组 */}
         <div className="toolbar-group">
           <button onClick={handleAddText} className="toolbar-button" title="添加文字">
-            <span>T</span>
-            添加文字
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 7V4h16v3M9 20h6M12 4v16" strokeLinecap="round" />
+            </svg>
+            <span>文字</span>
           </button>
           <button onClick={handleUploadClick} className="toolbar-button" title="上传图片">
-            <span>🖼️</span>
-            上传图片
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="9" cy="9" r="2" fill="currentColor" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span>图片</span>
           </button>
-          <button onClick={deleteSelected} className="toolbar-button" title="删除选中">
-            <span>🗑️</span>
-            删除
+          <button onClick={deleteSelected} className="toolbar-button" title="删除选中 (Delete)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" />
+            </svg>
+            <span>删除</span>
           </button>
         </div>
 
+        <div className="toolbar-divider" />
+
+        {/* 视图组 */}
         <div className="toolbar-group">
           <button
             onClick={togglePanMode}
             className={`toolbar-button ${isPanning ? 'active' : ''}`}
-            title="平移模式 (空格)"
+            title="切换平移模式 (或按住空格临时平移)"
           >
-            <span>✋</span>
-            {isPanning ? '平移中' : '平移 (空格)'}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M19 9l3 3-3 3M9 19l3 3 3-3M2 12h20M12 2v20" strokeLinecap="round" />
+            </svg>
+            <span>{isPanning ? '平移中' : '平移'}</span>
           </button>
           <button
-            onClick={() => setZoom(viewport.zoom + 0.1)}
-            className="toolbar-button"
-            title="放大"
-          >
-            <span>🔍+</span>
-          </button>
-          <span className="zoom-level">{Math.round(viewport.zoom * 100)}%</span>
-          <button
-            onClick={() => setZoom(Math.max(0.1, viewport.zoom - 0.1))}
-            className="toolbar-button"
+            onClick={() => setZoom(Math.max(LIMITS.minZoom, viewport.zoom - 0.1))}
+            className="toolbar-button icon-only"
             title="缩小"
           >
-            <span>🔍-</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className="zoom-display">{Math.round(viewport.zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom(Math.min(LIMITS.maxZoom, viewport.zoom + 0.1))}
+            className="toolbar-button icon-only"
+            title="放大"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="toolbar-divider" />
+
+        {/* 更多 */}
+        <div className="toolbar-group">
+          <button className="toolbar-button icon-only" title="更多选项">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="1" fill="currentColor" />
+              <circle cx="19" cy="12" r="1" fill="currentColor" />
+              <circle cx="5" cy="12" r="1" fill="currentColor" />
+            </svg>
           </button>
         </div>
       </div>
 
       {/* 平移模式提示 */}
-      {isPanning && (
+      {isActuallyPanning && (
         <div className="pan-mode-indicator">
-          按住鼠标拖拽移动画布
+          {isSpacePressed ? '松开空格退出平移' : '按 ESC 退出平移模式'}
         </div>
       )}
 

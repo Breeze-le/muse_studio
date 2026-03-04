@@ -23,6 +23,7 @@ export function useFabricCanvas(
   } = options;
 
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
+  const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [isReady, setIsReady] = useState(false);
 
@@ -36,6 +37,21 @@ export function useFabricCanvas(
       backgroundColor,
       selection: true,
       preserveObjectStacking: true,
+    });
+
+    // 监听对象移动事件，确保控制点实时更新
+    canvas.on('object:moving', () => {
+      canvas.requestRenderAll();
+    });
+
+    // 监听对象缩放事件
+    canvas.on('object:scaling', () => {
+      canvas.requestRenderAll();
+    });
+
+    // 监听对象旋转事件
+    canvas.on('object:rotating', () => {
+      canvas.requestRenderAll();
     });
 
     fabricCanvasRef.current = canvas;
@@ -71,10 +87,18 @@ export function useFabricCanvas(
         canvas.setZoom(clampedZoom);
       }
 
-      setViewport({ ...viewport, zoom: clampedZoom });
-      onViewportChange?.({ ...viewport, zoom: clampedZoom });
+      // 手动更新 viewport 状态
+      const vpt = canvas.viewportTransform;
+      if (vpt) {
+        const newViewport = { x: -vpt[4], y: -vpt[5], zoom: vpt[0] };
+        viewportRef.current = newViewport;
+        setViewport(newViewport);
+        onViewportChange?.(newViewport);
+      }
+
+      canvas.requestRenderAll();
     },
-    [viewport, onViewportChange]
+    [onViewportChange]
   );
 
   // 平移画布
@@ -87,10 +111,14 @@ export function useFabricCanvas(
       if (vpt) {
         vpt[4] += dx;
         vpt[5] += dy;
-        canvas.requestRenderAll();
 
-        setViewport({ x: -vpt[4], y: -vpt[5], zoom: canvas.getZoom() });
-        onViewportChange?.({ x: -vpt[4], y: -vpt[5], zoom: canvas.getZoom() });
+        // 手动更新 viewport 状态
+        const newViewport = { x: -vpt[4], y: -vpt[5], zoom: vpt[0] };
+        viewportRef.current = newViewport;
+        setViewport(newViewport);
+        onViewportChange?.(newViewport);
+
+        canvas.requestRenderAll();
       }
     },
     [onViewportChange]
@@ -114,9 +142,12 @@ export function useFabricCanvas(
         const scale = Math.min(1, maxSize / Math.max(img.width!, img.height!));
         if (scale < 1) img.scale(scale);
 
+        // 设置 origin 为中心，使 x,y 为图片中心点
         img.set({
           left: x,
           top: y,
+          originX: 'center',
+          originY: 'center',
           selectable: true,
           ...(id && { data: { id } }),
         });
@@ -145,6 +176,8 @@ export function useFabricCanvas(
       const textBox = new Textbox(text, {
         left: x,
         top: y,
+        originX: 'center',
+        originY: 'center',
         fontSize,
         fill: COLORS.text,
         width: LIMITS.minTextWidth,

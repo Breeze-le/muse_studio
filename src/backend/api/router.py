@@ -26,7 +26,7 @@ class LLMGenerateRequest(BaseModel):
     """LLM 生成请求
 
     参数根据各 Provider 的 ParamSpec.exposed 动态决定：
-    - zhipu: thinking_enabled, temperature, max_tokens
+    - zhipu: thinking_enabled
     - gemini: thinking_level
     - thirtytwo: 无暴露参数
     """
@@ -51,8 +51,8 @@ class ImageGenerateRequest(BaseModel):
     """Image 生成请求
 
     参数根据各 Provider 的 ParamSpec.exposed 动态决定：
-    - thirtytwo_nano_banana: images, resolution, aspect_ratio, enable_base64_output
-    - thirtytwo_seedream: image, size, aspect_ratio, watermark
+    - thirtytwo_nano_banana: images, resolution, aspect_ratio
+    - thirtytwo_seedream: image, aspect_ratio
     """
 
     vendor: str = Field(
@@ -127,7 +127,7 @@ class ProvidersListResponse(BaseModel):
 # =============================================================================
 
 router = APIRouter(
-    prefix="/api/v1/providers",
+    prefix="/api/v1",
     tags=["providers"],
 )
 
@@ -144,14 +144,14 @@ async def generate_llm(request: LLMGenerateRequest) -> dict[str, Any]:
 
     ### 参数说明
 
-    通过 `GET /api/v1/providers/llm/providers` 查看每个厂商的 `info.exposed_params`，
+    通过 `GET /api/v1/llm/providers` 查看每个厂商的 `info.exposed_params`，
     仅可传入暴露的参数，未暴露的参数将被忽略。
 
     ### 各厂商暴露参数
 
     | 厂商 | 暴露参数 |
     |------|----------|
-    | zhipu | thinking_enabled, temperature, max_tokens |
+    | zhipu | thinking_enabled |
     | gemini | thinking_level |
     | thirtytwo | 无暴露参数 |
 
@@ -162,8 +162,7 @@ async def generate_llm(request: LLMGenerateRequest) -> dict[str, Any]:
       "vendor": "zhipu",
       "prompt": "请写一首关于春天的诗",
       "parameters": {
-        "thinking_enabled": true,
-        "temperature": 0.8
+        "thinking_enabled": true
       }
     }
     ```
@@ -200,15 +199,15 @@ async def generate_image(request: ImageGenerateRequest) -> dict[str, Any]:
 
     ### 参数说明
 
-    通过 `GET /api/v1/providers/image/providers` 查看每个厂商的 `info.exposed_params`，
+    通过 `GET /api/v1/image/providers` 查看每个厂商的 `info.exposed_params`，
     仅可传入暴露的参数，未暴露的参数将被忽略。
 
     ### 各厂商暴露参数
 
     | 厂商 | 暴露参数 |
     |------|----------|
-    | thirtytwo_nano_banana | images, resolution, aspect_ratio, enable_base64_output |
-    | thirtytwo_seedream | image, size, aspect_ratio, watermark |
+    | thirtytwo_nano_banana | images, resolution, aspect_ratio |
+    | thirtytwo_seedream | image, aspect_ratio |
 
     ### 请求示例
 
@@ -256,7 +255,7 @@ async def generate_video(request: VideoGenerateRequest) -> dict[str, Any]:
 
     ### 参数说明
 
-    通过 `GET /api/v1/providers/video/providers` 查看每个厂商的 `info.exposed_params`，
+    通过 `GET /api/v1/video/providers` 查看每个厂商的 `info.exposed_params`，
     仅可传入暴露的参数，未暴露的参数将被忽略。
 
     ### 各厂商暴露参数

@@ -145,6 +145,7 @@ src/frontend/src/
 1. python环境在/muse_studio/.venv
 2. 前端环境在/muse_studio/node_modules
 3. 涉及环境改动要同步至package.json和requirements.txt，并检查scripts/setup.sh
-4. 后端完成py代码，则需要在/muse_studio/tests保持相同目录结构进行测试，只做最简单最上层的测试，完成后要同步至scripts/test.sh
+4. 后端新增或修改码，要通过/muse_studio/scripts/restart.sh重启服务，需要在/muse_studio/tests保持相同目录结构、test_源文件名 进行测试，只做最简单最上层的测试，完成后要同步至scripts/test.sh
 5. 所有内容完成后要同步至README.md
 6. 定期整理文档至/muse_studio/docs/AI_PRD
+7. commit提交和push代码前要询问一下，允许后才进行操作

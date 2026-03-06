@@ -18,7 +18,7 @@ class TestLLMAPI:
 
     def test_list_llm_providers(self):
         """测试列出 LLM Providers"""
-        response = client.get("/api/v1/providers/llm/providers")
+        response = client.get("/api/v1/llm/providers")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -34,7 +34,7 @@ class TestLLMAPI:
     def test_generate_llm_unknown_vendor(self):
         """测试 LLM 生成时使用不存在的厂商"""
         response = client.post(
-            "/api/v1/providers/llm/generate",
+            "/api/v1/llm/generate",
             json={
                 "vendor": "unknown",
                 "prompt": "test",
@@ -49,7 +49,7 @@ class TestLLMAPI:
     def test_generate_llm_missing_vendor(self):
         """测试 LLM 生成时缺少厂商参数"""
         response = client.post(
-            "/api/v1/providers/llm/generate",
+            "/api/v1/llm/generate",
             json={
                 "prompt": "test",
                 "parameters": {},
@@ -60,7 +60,7 @@ class TestLLMAPI:
     def test_generate_llm_with_parameters(self):
         """测试 LLM 生成时传入 parameters"""
         response = client.post(
-            "/api/v1/providers/llm/generate",
+            "/api/v1/llm/generate",
             json={
                 "vendor": "zhipu",
                 "prompt": "test",
@@ -83,7 +83,7 @@ class TestImageAPI:
 
     def test_list_image_providers(self):
         """测试列出 Image Providers"""
-        response = client.get("/api/v1/providers/image/providers")
+        response = client.get("/api/v1/image/providers")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -99,7 +99,7 @@ class TestImageAPI:
     def test_generate_image_unknown_vendor(self):
         """测试 Image 生成时使用不存在的厂商"""
         response = client.post(
-            "/api/v1/providers/image/generate",
+            "/api/v1/image/generate",
             json={
                 "vendor": "unknown",
                 "prompt": "test",
@@ -114,7 +114,7 @@ class TestImageAPI:
     def test_generate_image_with_parameters(self):
         """测试 Image 生成时传入 parameters"""
         response = client.post(
-            "/api/v1/providers/image/generate",
+            "/api/v1/image/generate",
             json={
                 "vendor": "thirtytwo_nano_banana",
                 "prompt": "a cute cat",
@@ -133,7 +133,7 @@ class TestVideoAPI:
 
     def test_list_video_providers(self):
         """测试列出 Video Providers"""
-        response = client.get("/api/v1/providers/video/providers")
+        response = client.get("/api/v1/video/providers")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -149,7 +149,7 @@ class TestVideoAPI:
     def test_generate_video_unknown_vendor(self):
         """测试 Video 生成时使用不存在的厂商"""
         response = client.post(
-            "/api/v1/providers/video/generate",
+            "/api/v1/video/generate",
             json={
                 "vendor": "unknown",
                 "prompt": "test",
@@ -164,7 +164,7 @@ class TestVideoAPI:
     def test_generate_video_with_parameters(self):
         """测试 Video 生成时传入 parameters"""
         response = client.post(
-            "/api/v1/providers/video/generate",
+            "/api/v1/video/generate",
             json={
                 "vendor": "thirtytwo_kling",
                 "prompt": "clouds moving",
@@ -183,7 +183,7 @@ class TestUnifiedAPI:
 
     def test_list_all_providers(self):
         """测试列出所有 Providers"""
-        response = client.get("/api/v1/providers/providers")
+        response = client.get("/api/v1/providers")
         assert response.status_code == 200
         data = response.json()
         assert "llm" in data
@@ -215,7 +215,7 @@ class TestExposedParams:
 
     def test_zhipu_exposed_params(self):
         """测试 zhipu 暴露参数"""
-        response = client.get("/api/v1/providers/llm/providers")
+        response = client.get("/api/v1/llm/providers")
         assert response.status_code == 200
         providers = response.json()
         zhipu = next((p for p in providers if p["vendor"] == "zhipu"), None)
@@ -230,7 +230,7 @@ class TestExposedParams:
 
     def test_gemini_exposed_params(self):
         """测试 gemini 暴露参数"""
-        response = client.get("/api/v1/providers/llm/providers")
+        response = client.get("/api/v1/llm/providers")
         assert response.status_code == 200
         providers = response.json()
         gemini = next((p for p in providers if p["vendor"] == "gemini"), None)
@@ -245,7 +245,7 @@ class TestExposedParams:
 
     def test_thirtytwo_llm_no_exposed_params(self):
         """测试 thirtytwo LLM 无暴露参数"""
-        response = client.get("/api/v1/providers/llm/providers")
+        response = client.get("/api/v1/llm/providers")
         assert response.status_code == 200
         providers = response.json()
         thirtytwo = next((p for p in providers if p["vendor"] == "thirtytwo"), None)

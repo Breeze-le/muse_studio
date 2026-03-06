@@ -47,7 +47,8 @@ muse_studio/
 │   │   │   └── interaction.py    # Interaction 相关服务
 │   │   ├── api/                  # API 路由层
 │   │   │   ├── __init__.py       # 模块导出
-│   │   │   └── providers.py      # Provider API 路由
+│   │   │   ├── router.py         # API 路由定义
+│   │   │   └── test_router.py    # API 路由测试
 │   │   └── providers/            # 外部 API 封装层
 │   │       ├── param_spec.py     # 参数元数据定义（ParamSpec 数据类）
 │   │       ├── llm/              # LLM 提供商
@@ -87,10 +88,12 @@ muse_studio/
 │               └── useFabricCanvas.ts  # Fabric.js 封装
 └── tests/                        # 测试目录
     ├── conftest.py               # Pytest 配置
-    └── providers/                # Provider 测试
+    ├── api/                      # API 测试
+    │   └── test_router.py        # API 路由测试
+    ├── services/                 # 服务层测试
+    │   └── test_provider_service.py  # Provider 服务层测试
+    └── providers/                # Provider 单元测试
         ├── test_param_spec.py    # 参数元数据测试
-        ├── test_provider_service.py  # Provider 服务层测试
-        ├── test_provider_api.py  # Provider API 路由测试
         ├── llm/                  # LLM 提供商测试
         │   ├── test_zhipu.py     # 智谱 AI 测试
         │   ├── test_gemini.py    # Gemini 测试
@@ -136,7 +139,7 @@ muse_studio/
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    FastAPI Routes                        │
-│         /api/v1/providers/{llm,image,video}              │
+│         /api/v1/{llm,image,video}              │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
@@ -161,8 +164,8 @@ muse_studio/
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| POST | `/api/v1/providers/llm/generate` | 生成文本 |
-| GET | `/api/v1/providers/llm/providers` | 获取所有 LLM Provider |
+| POST | `/api/v1/llm/generate` | 生成文本 |
+| GET | `/api/v1/llm/providers` | 获取所有 LLM Provider |
 
 **LLM 暴露参数：**
 
@@ -174,7 +177,7 @@ muse_studio/
 
 **请求示例：**
 ```json
-POST /api/v1/providers/llm/generate
+POST /api/v1/llm/generate
 {
   "vendor": "zhipu",
   "prompt": "请写一首关于春天的诗",
@@ -188,8 +191,8 @@ POST /api/v1/providers/llm/generate
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| POST | `/api/v1/providers/image/generate` | 生成图片 |
-| GET | `/api/v1/providers/image/providers` | 获取所有 Image Provider |
+| POST | `/api/v1/image/generate` | 生成图片 |
+| GET | `/api/v1/image/providers` | 获取所有 Image Provider |
 
 **Image 暴露参数：**
 
@@ -200,7 +203,7 @@ POST /api/v1/providers/llm/generate
 
 **请求示例：**
 ```json
-POST /api/v1/providers/image/generate
+POST /api/v1/image/generate
 {
   "vendor": "thirtytwo_nano_banana",
   "prompt": "一只可爱的橘猫",
@@ -215,8 +218,8 @@ POST /api/v1/providers/image/generate
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| POST | `/api/v1/providers/video/generate` | 生成视频 |
-| GET | `/api/v1/providers/video/providers` | 获取所有 Video Provider |
+| POST | `/api/v1/video/generate` | 生成视频 |
+| GET | `/api/v1/video/providers` | 获取所有 Video Provider |
 
 **Video 暴露参数：**
 
@@ -226,7 +229,7 @@ POST /api/v1/providers/image/generate
 
 **请求示例：**
 ```json
-POST /api/v1/providers/video/generate
+POST /api/v1/video/generate
 {
   "vendor": "thirtytwo_kling",
   "prompt": "让画面中的云朵缓缓移动",
@@ -241,12 +244,12 @@ POST /api/v1/providers/video/generate
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| GET | `/api/v1/providers/providers` | 获取所有 Provider（含暴露参数） |
+| GET | `/api/v1/providers` | 获取所有 Provider（含暴露参数） |
 | GET | `/health` | 健康检查 |
 
 **获取暴露参数示例：**
 ```bash
-GET /api/v1/providers/providers
+GET /api/v1/providers
 
 # 响应包含 info.exposed_params 字段，列出该 Provider 允许通过 API 传入的参数
 ```
@@ -316,8 +319,8 @@ cp .env.example .env
 
 ```bash
 # 运行核心测试（不含外部 API 调用）
-./scripts/test.sh tests/providers/test_provider_service.py  # 服务层测试
-./scripts/test.sh tests/providers/test_provider_api.py      # API 路由测试
+./scripts/test.sh tests/services/test_provider_service.py  # 服务层测试
+./scripts/test.sh tests/api/test_router.py                   # API 路由测试
 ./scripts/test.sh tests/providers/test_param_spec.py        # 参数规范测试
 
 # 运行指定类型测试（需要配置 API Key）
@@ -391,7 +394,7 @@ class CustomProvider(BaseLLMProvider):
 **参数过滤机制：**
 - 只有 `exposed=True` 的参数才能通过 API 传入
 - 服务层会自动过滤未暴露的参数
-- 前端可通过 `/api/v1/providers/providers` 获取暴露参数列表
+- 前端可通过 `/api/v1/providers` 获取暴露参数列表
 
 获取对外暴露的参数：
 ```python

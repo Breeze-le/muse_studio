@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.backend.api import providers_router
+from src.backend.api import router
 from src.backend.logger import get_logger
 
 logger = get_logger(__name__)
@@ -41,7 +41,7 @@ app.add_middleware(
 )
 
 # 注册路由
-app.include_router(providers_router)
+app.include_router(router)
 
 
 # 根路径

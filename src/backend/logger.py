@@ -70,3 +70,17 @@ def setup_logging(name="muse_studio", log_dir=None, debug_mode=None):
 
 
 logger = setup_logging()
+
+
+def get_logger(name: str | None = None) -> logging.Logger:
+    """获取 logger 实例
+
+    Args:
+        name: logger 名称，如果为 None 则返回默认 logger
+
+    Returns:
+        logger 实例
+    """
+    if name is None:
+        return logger
+    return logging.getLogger(name)

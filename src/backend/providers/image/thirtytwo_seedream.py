@@ -80,7 +80,7 @@ class ThirtyTwoSeedreamProvider(BaseImageProvider):
         ParamSpec(
             name="size",
             type=str,
-            exposed=True,
+            exposed=False,
             default=None,
             description="图片尺寸（如 '2K'），如果同时指定了 aspect_ratio 则使用 aspect_ratio 对应的分辨率",
             choices=None,
@@ -98,7 +98,7 @@ class ThirtyTwoSeedreamProvider(BaseImageProvider):
         ParamSpec(
             name="watermark",
             type=bool,
-            exposed=True,
+            exposed=False,
             default=False,
             description="是否添加水印",
             choices=None,

@@ -21,12 +21,13 @@ class TestLLMParamSpec:
         assert ZhipuProvider.GENERATE_PARAMS, "ZhipuProvider 应该有参数定义"
 
         exposed = ZhipuProvider.get_exposed_params()
-        assert len(exposed) == 3, f"应该有 3 个对外暴露参数，实际: {len(exposed)}"
+        assert len(exposed) == 1, f"应该有 1 个对外暴露参数，实际: {len(exposed)}"
 
         param_names = [p.name for p in exposed]
         assert "thinking_enabled" in param_names
-        assert "temperature" in param_names
-        assert "max_tokens" in param_names
+        # temperature 和 max_tokens 不再对外暴露
+        assert "temperature" not in param_names
+        assert "max_tokens" not in param_names
 
         # 验证 thinking_enabled 参数
         thinking_param = ZhipuProvider.get_param_dict()["thinking_enabled"]
@@ -42,9 +43,11 @@ class TestLLMParamSpec:
         exposed = GeminiProvider.get_exposed_params()
         param_names = [p.name for p in exposed]
 
+        # 只有 thinking_level 对外暴露
         assert "thinking_level" in param_names
-        assert "temperature" in param_names
-        assert "max_tokens" in param_names
+        # temperature 和 max_tokens 不再对外暴露
+        assert "temperature" not in param_names
+        assert "max_tokens" not in param_names
 
         # 验证 thinking_level 参数的可选值
         thinking_param = GeminiProvider.get_param_dict()["thinking_level"]
@@ -57,12 +60,15 @@ class TestLLMParamSpec:
         exposed = ThirtyTwoProvider.get_exposed_params()
         param_names = [p.name for p in exposed]
 
+        # thirtytwo LLM 没有对外暴露的参数
+        assert len(exposed) == 0, f"应该有 0 个对外暴露参数，实际: {len(exposed)}"
+
         # stream 不应该对外暴露
         assert "stream" not in param_names
 
-        # temperature 和 max_tokens 应该暴露
-        assert "temperature" in param_names
-        assert "max_tokens" in param_names
+        # temperature 和 max_tokens 也不对外暴露
+        assert "temperature" not in param_names
+        assert "max_tokens" not in param_names
 
     def test_provider_info_structure(self):
         """测试 get_provider_info 返回结构"""
@@ -95,11 +101,12 @@ class TestImageParamSpec:
         # 内部参数不应对外暴露
         assert "response_format" not in param_names
         assert "model" not in param_names
+        assert "watermark" not in param_names  # watermark 也不再对外暴露
+        assert "size" not in param_names
 
         # 用户参数应该暴露
         assert "image" in param_names
         assert "aspect_ratio" in param_names
-        assert "watermark" in param_names
 
         # 验证 aspect_ratio 的可选值
         aspect_ratio_param = ThirtyTwoSeedreamProvider.get_param_dict()["aspect_ratio"]
@@ -115,12 +122,12 @@ class TestImageParamSpec:
 
         # 内部参数不应对外暴露
         assert "enable_sync_mode" not in param_names
+        assert "enable_base64_output" not in param_names
 
         # 用户参数应该暴露
         assert "images" in param_names
         assert "resolution" in param_names
         assert "aspect_ratio" in param_names
-        assert "enable_base64_output" in param_names  # 现已对外暴露
 
 
 class TestVideoParamSpec:

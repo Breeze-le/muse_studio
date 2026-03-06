@@ -92,9 +92,9 @@ class ThirtyTwoNanoBananaProvider(BaseImageProvider):
         ParamSpec(
             name="enable_base64_output",
             type=bool,
-            exposed=True,
+            exposed=False,
             default=False,
-            description="是否返回 base64 编码的图片数据",
+            description="是否返回 base64 编码的图片数据（内部参数）",
             choices=None,
             required=False,
         ),

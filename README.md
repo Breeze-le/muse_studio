@@ -25,7 +25,8 @@ muse_studio/
 ├── logs/                         # 日志输出目录
 ├── scripts/                      # 项目运行与运维脚本
 │   ├── setup.sh                  # 初始化环境脚本
-│   └── test.sh                   # 运行测试脚本
+│   ├── test.sh                   # 运行测试脚本
+│   └── restart.sh                # 服务重启脚本（前端+后端）
 ├── src/                          # 源代码主目录
 │   ├── backend/                  # 后端代码（Python/FastAPI）
 │   │   ├── main.py               # FastAPI 入口
@@ -36,6 +37,7 @@ muse_studio/
 │   │   ├── logger.py             # 日志配置
 │   │   ├── utils.py              # 工具函数
 │   │   ├── services/             # 核心业务逻辑
+│   │   │   ├── provider_service.py  # Provider 服务层封装
 │   │   │   ├── generation.py     # AI 生成调度服务
 │   │   │   ├── outfit.py         # Outfit 相关服务
 │   │   │   ├── canvas.py         # Canvas 相关服务
@@ -43,6 +45,9 @@ muse_studio/
 │   │   │   ├── feed.py           # Feed 相关服务
 │   │   │   ├── asset.py          # Asset 相关服务
 │   │   │   └── interaction.py    # Interaction 相关服务
+│   │   ├── api/                  # API 路由层
+│   │   │   ├── __init__.py       # 模块导出
+│   │   │   └── providers.py      # Provider API 路由
 │   │   └── providers/            # 外部 API 封装层
 │   │       ├── param_spec.py     # 参数元数据定义（ParamSpec 数据类）
 │   │       ├── llm/              # LLM 提供商
@@ -84,6 +89,8 @@ muse_studio/
     ├── conftest.py               # Pytest 配置
     └── providers/                # Provider 测试
         ├── test_param_spec.py    # 参数元数据测试
+        ├── test_provider_service.py  # Provider 服务层测试
+        ├── test_provider_api.py  # Provider API 路由测试
         ├── llm/                  # LLM 提供商测试
         │   ├── test_zhipu.py     # 智谱 AI 测试
         │   ├── test_gemini.py    # Gemini 测试
@@ -101,24 +108,168 @@ muse_studio/
 
 ### LLM 提供商
 
-| 厂商 | 类名 | 状态 | 推荐模型 |
-|------|------|------|----------|
-| 智谱 AI | `ZhipuProvider` | ✅ 已实现 | `glm-4.7-flash` |
-| Google Gemini | `GeminiProvider` | ✅ 已实现 | `gemini-2.5-flash` |
-| 302.AI | `ThirtyTwoProvider` | ✅ 已实现 | `gemini-2.5-flash` |
+| 厂商 | 类名 | 状态 | 暴露参数 | 推荐模型 |
+|------|------|------|----------|----------|
+| 智谱 AI | `ZhipuProvider` | ✅ | `thinking_enabled` | `glm-4.7-flash` |
+| Google Gemini | `GeminiProvider` | ✅ | `thinking_level` | `gemini-2.5-flash` |
+| 302.AI | `ThirtyTwoProvider` | ✅ | 无 | `gemini-2.5-flash` |
 
 ### 图像生成提供商
 
-| 厂商 | 类名 | 状态 | 推荐模型 |
-|------|------|------|----------|
-| 302.AI Nano Banana | `ThirtyTwoNanoBananaProvider` | ✅ 已实现 | `google/nano-banana-2` |
-| 302.AI Seedream | `ThirtyTwoSeedreamProvider` | ✅ 已实现 | `doubao-seedream-5-0-260128` |
+| 厂商 | 类名 | 状态 | 暴露参数 | 推荐模型 |
+|------|------|------|----------|----------|
+| 302.AI Nano Banana | `ThirtyTwoNanoBananaProvider` | ✅ | `images`, `resolution`, `aspect_ratio` | `google/nano-banana-2` |
+| 302.AI Seedream | `ThirtyTwoSeedreamProvider` | ✅ | `image`, `aspect_ratio` | `doubao-seedream-5-0-260128` |
 
 ### 视频生成提供商
 
-| 厂商 | 类名 | 状态 | 推荐模型 |
-|------|------|------|----------|
-| 302.AI Kling | `ThirtyTwoKlingProvider` | ✅ 已实现 | `kling-v-1-5-260121` / `kling-v2-5-turbo` |
+| 厂商 | 类名 | 状态 | 暴露参数 | 推荐模型 |
+|------|------|------|----------|----------|
+| 302.AI Kling | `ThirtyTwoKlingProvider` | ✅ | `images`, `model_name`, `mode`, `aspect_ratio`, `duration` | `kling-v2-5-turbo` |
+
+---
+
+## 后端 API 服务
+
+### 架构分层
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FastAPI Routes                        │
+│         /api/v1/providers/{llm,image,video}              │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│              Provider Service Layer                      │
+│    ProviderRegistry | LLMService | ImageService | ...    │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                  Provider Abstract Layer                 │
+│     BaseLLMProvider | BaseImageProvider | ...           │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                 External AI Services                     │
+│      Zhipu | Gemini | 302.AI | Kling | ...              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### API 端点
+
+#### LLM 服务
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/v1/providers/llm/generate` | 生成文本 |
+| GET | `/api/v1/providers/llm/providers` | 获取所有 LLM Provider |
+
+**LLM 暴露参数：**
+
+| 厂商 | 暴露参数 |
+|------|----------|
+| zhipu | `thinking_enabled` (bool) |
+| gemini | `thinking_level` (str, choices: minimal/low/medium/high) |
+| thirtytwo | 无暴露参数 |
+
+**请求示例：**
+```json
+POST /api/v1/providers/llm/generate
+{
+  "vendor": "zhipu",
+  "prompt": "请写一首关于春天的诗",
+  "parameters": {
+    "thinking_enabled": true
+  }
+}
+```
+
+#### Image 服务
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/v1/providers/image/generate` | 生成图片 |
+| GET | `/api/v1/providers/image/providers` | 获取所有 Image Provider |
+
+**Image 暴露参数：**
+
+| 厂商 | 暴露参数 |
+|------|----------|
+| thirtytwo_nano_banana | `images` (list), `resolution` (1k/2k/4k), `aspect_ratio` (str) |
+| thirtytwo_seedream | `image` (str\|list[str]), `aspect_ratio` (1:1/4:3/3:4/16:9/9:16/3:2/2:3/21:9) |
+
+**请求示例：**
+```json
+POST /api/v1/providers/image/generate
+{
+  "vendor": "thirtytwo_nano_banana",
+  "prompt": "一只可爱的橘猫",
+  "parameters": {
+    "resolution": "2k",
+    "aspect_ratio": "16:9"
+  }
+}
+```
+
+#### Video 服务
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/v1/providers/video/generate` | 生成视频 |
+| GET | `/api/v1/providers/video/providers` | 获取所有 Video Provider |
+
+**Video 暴露参数：**
+
+| 厂商 | 暴露参数 |
+|------|----------|
+| thirtytwo_kling | `images` (str\|list[str]), `model_name` (str), `mode` (std/pro), `aspect_ratio` (16:9/9:16/1:1), `duration` (5/10) |
+
+**请求示例：**
+```json
+POST /api/v1/providers/video/generate
+{
+  "vendor": "thirtytwo_kling",
+  "prompt": "让画面中的云朵缓缓移动",
+  "parameters": {
+    "aspect_ratio": "16:9",
+    "duration": 5
+  }
+}
+```
+
+#### 统一端点
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| GET | `/api/v1/providers/providers` | 获取所有 Provider（含暴露参数） |
+| GET | `/health` | 健康检查 |
+
+**获取暴露参数示例：**
+```bash
+GET /api/v1/providers/providers
+
+# 响应包含 info.exposed_params 字段，列出该 Provider 允许通过 API 传入的参数
+```
+
+### 启动服务
+
+```bash
+# 使用 restart.sh 脚本同时启动前端和后端
+./scripts/restart.sh
+
+# 仅启动后端
+./scripts/restart.sh backend
+
+# 仅启动前端
+./scripts/restart.sh frontend
+
+# 或手动启动后端
+source .venv/bin/activate
+uvicorn src.backend.main:app --reload --port 8000
+
+# 访问 API 文档
+open http://localhost:8000/docs
+```
 
 ---
 
@@ -164,26 +315,32 @@ cp .env.example .env
 ### 3. 运行测试
 
 ```bash
-# 运行全部测试
-./scripts/test.sh
+# 运行核心测试（不含外部 API 调用）
+./scripts/test.sh tests/providers/test_provider_service.py  # 服务层测试
+./scripts/test.sh tests/providers/test_provider_api.py      # API 路由测试
+./scripts/test.sh tests/providers/test_param_spec.py        # 参数规范测试
 
-# 运行指定类型测试
-./scripts/test.sh tests/providers/llm/    # 仅 LLM 测试
-./scripts/test.sh tests/providers/image/  # 仅图像测试
-./scripts/test.sh tests/providers/video/  # 仅视频测试
+# 运行指定类型测试（需要配置 API Key）
+./scripts/test.sh tests/providers/llm/               # LLM 提供商测试
+./scripts/test.sh tests/providers/image/             # 图像提供商测试
+./scripts/test.sh tests/providers/video/             # 视频提供商测试
 ```
 
-### 4. 启动前端开发服务器
+### 4. 启动服务
 
 ```bash
-# 安装前端依赖（根目录）
-pnpm install
+# 启动前端 + 后端
+./scripts/restart.sh
 
-# 启动开发服务器
-pnpm run dev
+# 仅启动后端
+./scripts/restart.sh backend
+
+# 仅启动前端
+./scripts/restart.sh frontend
 ```
 
 访问地址:
+- API 文档: http://localhost:8000/docs
 - 首页: http://localhost:5173/
 - 画布页: http://localhost:5173/canvas
 
@@ -221,7 +378,7 @@ class CustomProvider(BaseLLMProvider):
         ParamSpec(
             name="temperature",
             type=float,
-            exposed=True,          # 是否对外暴露（前端展示）
+            exposed=True,          # 是否对外暴露（API 可传入）
             default=1.0,
             description="控制输出的随机性",
             choices=None,
@@ -230,6 +387,11 @@ class CustomProvider(BaseLLMProvider):
         # ...
     )
 ```
+
+**参数过滤机制：**
+- 只有 `exposed=True` 的参数才能通过 API 传入
+- 服务层会自动过滤未暴露的参数
+- 前端可通过 `/api/v1/providers/providers` 获取暴露参数列表
 
 获取对外暴露的参数：
 ```python

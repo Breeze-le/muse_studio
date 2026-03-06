@@ -60,7 +60,7 @@ class GeminiProvider(BaseLLMProvider):
         ParamSpec(
             name="temperature",
             type=float,
-            exposed=True,
+            exposed=False,
             default=1.0,
             description="控制输出的随机性，范围 0.0-2.0",
             choices=None,
@@ -69,7 +69,7 @@ class GeminiProvider(BaseLLMProvider):
         ParamSpec(
             name="max_tokens",
             type=int,
-            exposed=True,
+            exposed=False,
             default=65536,
             description="最大输出 tokens 数",
             choices=None,

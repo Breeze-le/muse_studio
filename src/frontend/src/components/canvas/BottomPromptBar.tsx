@@ -27,6 +27,7 @@ interface ProviderInfo {
 interface Props {
   onImageGenerated: (base64: string) => void;
   onVideoGenerated: (base64: string) => void;
+  selectedImageDataUrl?: string | null;
 }
 
 // ==================== 工具 ====================
@@ -55,9 +56,35 @@ function chipDisplay(p: ExposedParam, val: unknown): string {
   return String(val);
 }
 
+/** 判断参数是否为图片类型（通过画布选中传入，前端不显示 chip） */
+function isImageParam(param: ExposedParam): boolean {
+  const name = param.name.toLowerCase();
+  return name === 'image' || name === 'images';
+}
+
+/** 将 data URL 转为 File 对象 */
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)?.[1] || 'image/png';
+  const bytes = atob(base64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+}
+
+/** 上传图片文件到 OSS，返回 URL */
+async function uploadImageToOSS(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const resp = await fetch('/api/v1/upload/image', { method: 'POST', body: formData });
+  const data = await resp.json();
+  if (!data.success) throw new Error(data.error || '图片上传失败');
+  return data.url as string;
+}
+
 // ==================== 主组件 ====================
 
-export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
+export function BottomPromptBar({ onImageGenerated, onVideoGenerated, selectedImageDataUrl }: Props) {
   const [mode, setMode] = useState<Mode>('image');
   const [imageProviders, setImageProviders] = useState<ProviderInfo[]>([]);
   const [videoProviders, setVideoProviders] = useState<ProviderInfo[]>([]);
@@ -105,7 +132,9 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
 
   function buildDefaults(p: ProviderInfo): Record<string, unknown> {
     return Object.fromEntries(
-      p.info.exposed_params.map((ep) => [ep.name, ep.default ?? ''])
+      p.info.exposed_params
+        .filter((ep) => !isImageParam(ep))
+        .map((ep) => [ep.name, ep.default ?? ''])
     );
   }
 
@@ -113,14 +142,10 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
     if (!currentProvider) return {};
     const result: Record<string, unknown> = {};
     for (const param of currentProvider.info.exposed_params) {
+      if (isImageParam(param)) continue;
       const val = params[param.name];
       if (val === '' || val === null || val === undefined) continue;
-      if (param.type.startsWith('list') || param.type.includes('list[')) {
-        const arr = String(val).split(',').map((s) => s.trim()).filter(Boolean);
-        if (arr.length > 0) result[param.name] = arr;
-      } else {
-        result[param.name] = val;
-      }
+      result[param.name] = val;
     }
     return result;
   }
@@ -128,6 +153,8 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
   const currentProviders = mode === 'image' ? imageProviders : videoProviders;
   const currentProvider = currentProviders.find((p) => p.vendor === selectedVendor);
   const exposedParams = currentProvider?.info.exposed_params ?? [];
+  // 过滤掉图片参数（后端处理）
+  const visibleParams = exposedParams.filter((p) => !isImageParam(p));
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -147,15 +174,33 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setError(null);
-    const endpoint = mode === 'image' ? '/api/v1/image/generate' : '/api/v1/video/generate';
+
     try {
+      const requestParams = buildRequestParams();
+
+      // 如果有选中的画布图片，上传到 OSS 并注入到 image 参数
+      if (selectedImageDataUrl) {
+        const file = dataUrlToFile(selectedImageDataUrl, `canvas_${Date.now()}.png`);
+        const url = await uploadImageToOSS(file);
+        // 查找当前 provider 的图片参数名
+        const imageParam = exposedParams.find((p) => isImageParam(p));
+        if (imageParam) {
+          if (imageParam.type.includes('list')) {
+            requestParams[imageParam.name] = [url];
+          } else {
+            requestParams[imageParam.name] = url;
+          }
+        }
+      }
+
+      const endpoint = mode === 'image' ? '/api/v1/image/generate' : '/api/v1/video/generate';
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendor: selectedVendor,
           prompt: prompt.trim(),
-          parameters: buildRequestParams(),
+          parameters: requestParams,
         }),
       });
       const data = await resp.json();
@@ -168,8 +213,8 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
       } else {
         setError(data.error || '生成失败');
       }
-    } catch {
-      setError('请求失败，请检查后端服务');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '请求失败，请检查后端服务');
     } finally {
       setLoading(false);
     }
@@ -236,7 +281,7 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
       );
     }
 
-    // str / int / float / list → 可编辑 chip（点击展开 inline input）
+    // str / int / float → 可编辑 chip（点击展开 inline input）
     return (
       <div key={key} className="chip-wrapper">
         <button
@@ -259,11 +304,7 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
               type={param.type === 'int' || param.type === 'float' ? 'number' : 'text'}
               className="chip-input"
               value={String(val ?? '')}
-              placeholder={
-                param.type.startsWith('list') || param.type.includes('list[')
-                  ? 'URL1, URL2, ...'
-                  : String(param.default ?? '')
-              }
+              placeholder={String(param.default ?? '')}
               autoFocus
               onChange={(e) => {
                 const v =
@@ -284,6 +325,14 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
 
   return (
     <div className="bottom-prompt-bar" onClick={() => setOpenChip(null)}>
+      {/* 选中图片缩略图 */}
+      {selectedImageDataUrl && (
+        <div className="selected-image-row">
+          <img src={selectedImageDataUrl} alt="选中图片" className="selected-image-thumb" />
+          <span className="selected-image-label">已选中参考图片</span>
+        </div>
+      )}
+
       {/* 输入区域 */}
       <textarea
         ref={textareaRef}
@@ -312,7 +361,7 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
                 <circle cx="9" cy="9" r="2" fill="currentColor" stroke="none" />
                 <path d="M21 15l-5-5L5 21" strokeLinecap="round" />
               </svg>
-              图片
+              图片生成
             </button>
             <button
               className={`mode-tab ${mode === 'video' ? 'active' : ''}`}
@@ -321,7 +370,7 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
               </svg>
-              视频
+              视频生成
             </button>
           </div>
 
@@ -366,8 +415,8 @@ export function BottomPromptBar({ onImageGenerated, onVideoGenerated }: Props) {
             </div>
           )}
 
-          {/* 所有暴露参数 → chips */}
-          {exposedParams.map((param) => renderParamChip(param))}
+          {/* 非图片暴露参数 → chips */}
+          {visibleParams.map((param) => renderParamChip(param))}
         </div>
 
         {/* 右侧 */}

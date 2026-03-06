@@ -23,12 +23,15 @@ export function InfiniteCanvas() {
       height: window.innerHeight,
       backgroundColor: '',          // 透明，CSS 背景透出
       onViewportChange: () => {},
+      onImageSelect: (info) => setSelectedImageUrl(info.dataUrl),
+      onSelectionClear: () => setSelectedImageUrl(null),
     });
 
   // 本地状态
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   /**
    * 点阵网格随视口平移/缩放而移动
@@ -255,6 +258,7 @@ export function InfiniteCanvas() {
       <BottomPromptBar
         onImageGenerated={handleImageGenerated}
         onVideoGenerated={handleVideoGenerated}
+        selectedImageDataUrl={selectedImageUrl}
       />
 
       {/* 左侧工具侧边栏 */}

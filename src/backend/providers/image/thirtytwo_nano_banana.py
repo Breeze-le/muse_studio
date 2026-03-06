@@ -86,7 +86,7 @@ class ThirtyTwoNanoBananaProvider(BaseImageProvider):
             exposed=True,
             default="3:4",
             description="宽高比",
-            choices=None,
+            choices=["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"],
             required=False,
         ),
         ParamSpec(

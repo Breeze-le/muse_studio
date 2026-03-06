@@ -146,6 +146,6 @@ src/frontend/src/
 2. 前端环境在/muse_studio/node_modules
 3. 涉及环境改动要同步至package.json和requirements.txt，并检查scripts/setup.sh
 4. 后端新增或修改码，要通过/muse_studio/scripts/restart.sh重启服务，需要在/muse_studio/tests保持相同目录结构、test_源文件名 进行测试，只做最简单最上层的测试，完成后要同步至scripts/test.sh
-5. 所有内容完成后要同步至README.md
+5. 所有内容完成后要同步至README.md和/muse_studio/docs/AI_PRD/architecture.md，README.md要包含简单的入门环境配置，以及提供什么模型供应商、什么功能，界面展示示例；/muse_studio/docs/AI_PRD/architecture.md要包含项目概览、核心命令、架构、配置、日志、Git 约定、重要注意事项等内容
 6. 定期整理文档至/muse_studio/docs/AI_PRD
 7. commit提交和push代码前要询问一下，允许后才进行操作

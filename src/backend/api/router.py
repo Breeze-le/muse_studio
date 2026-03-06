@@ -5,9 +5,12 @@ Provider API 路由
 API 入参根据各 Provider 的 ParamSpec.exposed 动态决定。
 """
 
+import os
+import time
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, File, UploadFile
 from pydantic import BaseModel, Field
 
 from src.backend.services.provider_service import (
@@ -296,6 +299,37 @@ async def list_video_providers() -> list[dict[str, Any]]:
     响应中的 `info.exposed_params` 列表包含该 Provider 允许通过 API 传入的参数。
     """
     return VideoService.get_providers()
+
+
+# -----------------------------------------------------------------------------
+# 图片上传端点
+# -----------------------------------------------------------------------------
+
+@router.post("/upload/image")
+async def upload_image(file: UploadFile = File(...)) -> dict[str, Any]:
+    """上传图片到 OSS，返回永久 URL
+
+    接收 multipart/form-data 格式的图片文件，上传至阿里云 OSS，
+    返回可公开访问的永久 URL。用于将画布选中图片转为 URL 传给 AI Provider。
+    """
+    from src.backend.utils import BucketCommand, DEFAULT_OSS_CONFIG
+
+    try:
+        oss_client = BucketCommand.from_str_config(DEFAULT_OSS_CONFIG)
+        if not oss_client:
+            return {"success": False, "error": "OSS 未配置，请检查环境变量"}
+
+        file_bytes = await file.read()
+        ext = os.path.splitext(file.filename or "image.png")[1].lstrip(".")
+        if not ext:
+            ext = "png"
+
+        remote_filename = f"upload_{int(time.time())}_{uuid.uuid4()}.{ext}"
+        url = oss_client.upload_file_bytes(file_bytes, remote_filename)
+
+        return {"success": True, "url": url}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # -----------------------------------------------------------------------------

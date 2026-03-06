@@ -9,6 +9,7 @@ export interface ImageSelectInfo {
   canvasTop: number;
   canvasWidth: number;
   canvasHeight: number;
+  dataUrl: string; // base64 data URL of the selected image
 }
 
 export interface UseFabricCanvasOptions {
@@ -73,11 +74,19 @@ export function useFabricCanvas(
       }
       const w = obj.getScaledWidth();
       const h = obj.getScaledHeight();
+      // 导出图片原始数据为 data URL
+      let dataUrl = '';
+      try {
+        dataUrl = obj.toDataURL({ format: 'png' });
+      } catch {
+        dataUrl = '';
+      }
       onImageSelectRef.current?.({
         canvasLeft: obj.left - w / 2,
         canvasTop: obj.top - h / 2,
         canvasWidth: w,
         canvasHeight: h,
+        dataUrl,
       });
     };
 

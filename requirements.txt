@@ -13,3 +13,7 @@ pytest-cov==7.0.0
 fastapi==0.115.12
 pydantic==2.10.6
 httpx==0.28.1
+python-multipart==0.0.12
+
+# OSS
+oss2==2.19.1
